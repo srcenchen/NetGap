@@ -18,7 +18,8 @@ func main() {
 	})
 
 	srv, err := sdk.NewServer(
-		sdk.WithServerTunnelAddr(":6500"))
+		sdk.WithServerTunnelAddr(":6500"),
+	)
 	if err != nil {
 		panic(err)
 	}
