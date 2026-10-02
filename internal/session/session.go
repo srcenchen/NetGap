@@ -1,18 +1,24 @@
 package session
 
 import (
+	"NetGap/internal/protocol"
 	"net"
 
 	"github.com/hashicorp/yamux"
+	"github.com/sirupsen/logrus"
 )
 
 type Session struct {
 	tcpMux yamux.Session
 }
-type Authenticator interface {
-	verityClient(clientId string, token string) bool
-}
+type verityClient func(clientId string, token string) bool
 
-func (s *Session) Accept(conn *net.Conn, auth Authenticator) error {
-
+// AcceptHandshake 握手判定
+func AcceptHandshake(conn *net.Conn, auth verityClient) (*Session, error) {
+	jsonCodec := protocol.NewJSONCodec()
+	hs := protocol.Handshake{}
+	jsonCodec.Decode(*conn, &hs)
+	authStatus := auth(hs.ClientID, hs.Token)
+	logrus.Infof("auth status: %v", authStatus)
+	return nil, nil
 }

@@ -1,11 +1,12 @@
 package sdk
 
 import (
-	"bufio"
+	"NetGap/internal/biz"
+	"NetGap/internal/server/data"
+	"NetGap/internal/session"
 	"context"
 	"errors"
 	"net"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -29,6 +30,10 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 	}
 	if o.TunnelAddr == "" {
 		return nil, errors.New("tunnel 监听地址为空")
+	}
+	// 初始化 数据库
+	if err := data.InitServerDb("serverData.db"); err != nil {
+		return nil, err
 	}
 	return server, nil
 }
@@ -58,15 +63,7 @@ func (s *Server) Run(ctx context.Context) error {
 			continue
 		}
 		go func() {
-			r := bufio.NewReader(conn)
-			for {
-				line, err := r.ReadString('\n')
-				if err != nil {
-					return
-				}
-				logrus.Info(strings.TrimSpace(line))
-			}
+			session.AcceptHandshake(&conn, biz.VerityClient)
 		}()
-		_ = conn
 	}
 }
