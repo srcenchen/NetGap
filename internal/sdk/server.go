@@ -63,7 +63,7 @@ func (s *Server) Run(ctx context.Context) error {
 			continue
 		}
 		go func() {
-			session.AcceptHandshake(&conn, biz.VerityClient)
+			session.AcceptHandshake(conn, biz.VerityClient)
 		}()
 	}
 }
