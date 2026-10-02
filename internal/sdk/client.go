@@ -13,6 +13,7 @@ type Client struct {
 type ClientOptions struct {
 	ServerAddr string        // 服务端地址
 	Timeout    time.Duration // 超时时间
+	ClientId   string        // 客户端 Id
 	Token      string        // 校验密钥
 	CryptoType CryptoType    // 加密类型
 }
