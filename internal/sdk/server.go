@@ -2,18 +2,20 @@ package sdk
 
 import (
 	"NetGap/internal/biz"
+	"NetGap/internal/handler"
 	"NetGap/internal/server/data"
 	"NetGap/internal/session"
 	"context"
 	"errors"
 	"net"
 
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
 type Server struct {
 	ServerOptions
-	sessionManager *SessionManager
+	sessionManager *session.Manager
 }
 
 func NewServer(opts ...ServerOption) (*Server, error) {
@@ -23,13 +25,16 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 	for _, opt := range opts {
 		opt(o)
 	}
-	sm := NewSessionManager()
+	sm := session.NewSessionManager()
 	server := &Server{
 		ServerOptions:  *o,
 		sessionManager: sm,
 	}
 	if o.TunnelAddr == "" {
 		return nil, errors.New("tunnel 监听地址为空")
+	}
+	if o.HttpAddr == "" {
+		return nil, errors.New("http-api 监听地址为空")
 	}
 	// 初始化 数据库
 	if err := data.InitServerDb("serverData.db"); err != nil {
@@ -39,27 +44,42 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	// 监听 tcp 端口
+	// 启动 Tunnel 隧道服务 server-client 段
 	lc := net.ListenConfig{}
-	ln, err := lc.Listen(ctx, "tcp", s.TunnelAddr)
+	tunnelLn, err := lc.Listen(ctx, "tcp", s.TunnelAddr)
 	if err != nil {
 		return err
 	}
-	logrus.Infof("NetGap Tunnel 服务运行在 %s", ln.Addr())
+	logrus.Infof("NetGap Tunnel 服务运行在 %s", tunnelLn.Addr())
 	defer func() {
-		_ = ln.Close()
+		_ = tunnelLn.Close()
 		logrus.Info("NetGap 服务已经停止")
 	}()
-	go func() {
-		<-ctx.Done()
-		_ = ln.Close()
-	}()
+	go s.tunnelAccept(tunnelLn)
+
+	// 启动 GIN-HTTP 服务器
+	//gin.SetMode(gin.ReleaseMode)
+	ginSrv := gin.New()
+	ginSrv.Use(gin.Recovery())
+	authorized := ginSrv.Group("/")
+	r := handler.NewRouter(s.sessionManager)
+	r.AuthNeededRouter(authorized) // 路由注册
+	go ginSrv.Run(s.HttpAddr)
+	// LOOP
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (s *Server) tunnelAccept(tunnelLn net.Listener) {
 	for {
-		conn, err := ln.Accept()
+		conn, err := tunnelLn.Accept()
 		if err != nil {
-			if ctx.Err() != nil {
-				return nil
+			if errors.Is(err, net.ErrClosed) {
+				return
 			}
+			logrus.Errorf("[TunnelErr]: %v", err)
 			continue
 		}
 		go func() {
@@ -67,7 +87,7 @@ func (s *Server) Run(ctx context.Context) error {
 			if err != nil {
 				logrus.Errorf("客户端握手失败 %s", err.Error())
 			}
-			s.sessionManager.SetSession(sess.ClientId, sess)
+			s.sessionManager.SetSession(sess.GetClientId(), sess) // 纳入到 sessionManager 管理
 		}()
 	}
 }

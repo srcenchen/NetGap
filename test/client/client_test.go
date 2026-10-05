@@ -12,7 +12,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	conn, err := net.Dial("tcp", "")
+	conn, err := net.Dial("tcp", "127.0.0.1:6500")
 	if err != nil {
 		panic(err)
 	}

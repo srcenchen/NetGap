@@ -1,9 +1,14 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type Client struct {
 	gorm.Model
-	ClientID string
-	Token    string
+	ClientID      string
+	Token         string
+	LastConnected time.Time
 }

@@ -9,8 +9,8 @@ import (
 )
 
 type Session struct {
-	ClientId string
-	TcpMux   *mux.TcpMux
+	clientId string
+	tcpMux   *mux.TcpMux
 }
 type verityClient func(clientId string, token string) bool
 
@@ -31,10 +31,15 @@ func AcceptHandshake(conn net.Conn, auth verityClient) (*Session, error) {
 	// 身份校验通过 构建 Session 并升级多路复用连接
 	logrus.Infof("客户端连接成功 %s, ClientId %s", conn.RemoteAddr().String(), hs.ClientID)
 	s := &Session{
-		ClientId: hs.ClientID,
-		TcpMux:   mux.UpgradeMuxClient(conn),
+		clientId: hs.ClientID,
+		tcpMux:   mux.UpgradeMuxClient(conn),
 	}
 	return s, nil
+}
+
+// CloseChan 存活检测 CloseChan 透传
+func (s *Session) CloseChan() <-chan struct{} {
+	return s.tcpMux.Session.CloseChan()
 }
 
 // handshakeResp 将会返回握手结果给客户端
@@ -51,4 +56,8 @@ func handshakeResp(conn net.Conn, status bool) error {
 		Code: 0,
 		Msg:  "success",
 	})
+}
+
+func (s *Session) GetClientId() string {
+	return s.clientId
 }
