@@ -42,10 +42,10 @@ func (s *Server) Run(ctx context.Context) error {
 	// 监听 tcp 端口
 	lc := net.ListenConfig{}
 	ln, err := lc.Listen(ctx, "tcp", s.TunnelAddr)
-	logrus.Infof("NetGap 服务运行在 %s", ln.Addr())
 	if err != nil {
 		return err
 	}
+	logrus.Infof("NetGap Tunnel 服务运行在 %s", ln.Addr())
 	defer func() {
 		_ = ln.Close()
 		logrus.Info("NetGap 服务已经停止")
@@ -63,7 +63,11 @@ func (s *Server) Run(ctx context.Context) error {
 			continue
 		}
 		go func() {
-			session.AcceptHandshake(conn, biz.VerityClient)
+			sess, err := session.AcceptHandshake(conn, biz.VerityClient)
+			if err != nil {
+				logrus.Errorf("客户端握手失败 %s", err.Error())
+			}
+			s.sessionManager.SetSession(sess.ClientId, sess)
 		}()
 	}
 }
