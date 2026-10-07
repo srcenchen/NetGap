@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"NetGap/internal/session"
+	"NetGap/internal/server/session"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,16 +1,19 @@
 package session
 
 import (
-	"NetGap/internal/mux"
 	"NetGap/internal/protocol"
+	"NetGap/internal/server/session/mux"
+	"context"
 	"net"
 
 	"github.com/sirupsen/logrus"
 )
 
 type Session struct {
-	clientId string
-	tcpMux   *mux.TcpMux
+	clientId    string
+	tcpMux      *mux.TcpMux
+	controlConn net.Conn
+	RelayMap    map[string]*RelaySession
 }
 type verityClient func(clientId string, token string) bool
 
@@ -33,8 +36,30 @@ func AcceptHandshake(conn net.Conn, auth verityClient) (*Session, error) {
 	s := &Session{
 		clientId: hs.ClientID,
 		tcpMux:   mux.UpgradeMuxClient(conn),
+		RelayMap: make(map[string]*RelaySession),
 	}
-	return s, nil
+	s.controlConn, err = s.CreateVirtualConn()
+	return s, err
+}
+
+// RunNewRelay 启用新的中转会话
+func (s *Session) RunNewRelay(tunnelId string, exposePort, targetAddr string) error {
+	vConn, err := s.CreateVirtualConn()
+	if err != nil {
+		return err
+	}
+	rs := NewReplySession(tunnelId, vConn)
+	s.RelayMap[tunnelId] = rs
+	err = rs.Listen(context.Background(), exposePort)
+	return err
+}
+
+func (s *Session) CreateVirtualConn() (net.Conn, error) {
+	conn, err := s.tcpMux.Session.Open()
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
 }
 
 // CloseChan 存活检测 CloseChan 透传

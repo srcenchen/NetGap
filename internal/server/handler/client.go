@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"NetGap/internal/biz/http_biz"
+	"NetGap/internal/server/biz/http_biz"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,10 +12,11 @@ var httpBiz *http_biz.HttpBiz
 // clientRouter /client/ 组
 func (r *Router) clientRouter(router *gin.RouterGroup) {
 	httpBiz = http_biz.NewHttpBiz()
-	router.GET("/list", r.listHandler) // /client/list
+	router.GET("/list", r.handleList) // /client/list
+	router.POST("/tunnel/new", r.handleNewTunnel)
 }
 
-func (r *Router) listHandler(c *gin.Context) {
+func (r *Router) handleList(c *gin.Context) {
 	cl := httpBiz.ClientBiz.GetClientList()
 	resp := listResp{
 		Code: http.StatusOK,

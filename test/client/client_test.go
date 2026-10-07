@@ -1,8 +1,8 @@
 package client
 
 import (
-	"NetGap/internal/mux"
 	"NetGap/internal/protocol"
+	"NetGap/internal/server/session/mux"
 	"io"
 	"net"
 	"sync"

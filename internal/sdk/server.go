@@ -1,10 +1,10 @@
 package sdk
 
 import (
-	"NetGap/internal/biz"
-	"NetGap/internal/handler"
+	"NetGap/internal/server/biz"
 	"NetGap/internal/server/data"
-	"NetGap/internal/session"
+	"NetGap/internal/server/handler"
+	session2 "NetGap/internal/server/session"
 	"context"
 	"errors"
 	"net"
@@ -15,7 +15,7 @@ import (
 
 type Server struct {
 	ServerOptions
-	sessionManager *session.Manager
+	sessionManager *session2.Manager
 }
 
 func NewServer(opts ...ServerOption) (*Server, error) {
@@ -25,7 +25,7 @@ func NewServer(opts ...ServerOption) (*Server, error) {
 	for _, opt := range opts {
 		opt(o)
 	}
-	sm := session.NewSessionManager()
+	sm := session2.NewSessionManager()
 	server := &Server{
 		ServerOptions:  *o,
 		sessionManager: sm,
@@ -83,7 +83,7 @@ func (s *Server) tunnelAccept(tunnelLn net.Listener) {
 			continue
 		}
 		go func() {
-			sess, err := session.AcceptHandshake(conn, biz.VerityClient)
+			sess, err := session2.AcceptHandshake(conn, biz.VerityClient)
 			if err != nil {
 				logrus.Errorf("客户端握手失败 %s", err.Error())
 			}
