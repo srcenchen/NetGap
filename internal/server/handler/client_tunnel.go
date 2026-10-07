@@ -24,5 +24,5 @@ func (r *Router) handleNewTunnel(c *gin.Context) {
 		return
 	}
 	port := (rand.Intn(99) + 1) * 3000
-	sess.RunNewRelay(uuid.NewV4().String(), strconv.Itoa(port))
+	sess.RunNewRelay(uuid.NewV4().String(), strconv.Itoa(port), tunnelReq.ClientAddr)
 }
